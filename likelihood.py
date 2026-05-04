@@ -248,13 +248,31 @@ class LikelihoodEstimator:
             0.9868, 0.9868,
         ])
 
+        # Progress tracking
+        _iter_count: list = [0]
+        _best_ll:    list = [float("-inf")]
+
         def neg_ll(x: np.ndarray) -> float:
             try:
-                params  = self._pack_rsjm_params(x)
-                engine  = RSJMEngine(params, dt=self.dt)
-                return -engine.log_likelihood(r)
+                params = self._pack_rsjm_params(x)
+                engine = RSJMEngine(params, dt=self.dt)
+                val    = -engine.log_likelihood(r)
+                if -val > _best_ll[0]:
+                    _best_ll[0] = -val
+                return val
             except Exception:
                 return 1e12
+
+        def _callback(x: np.ndarray) -> None:
+            _iter_count[0] += 1
+            if _iter_count[0] % 5 == 0:
+                print(
+                    f"  [RSJM MLE]  iter {_iter_count[0]:>4d} | "
+                    f"best LL = {_best_ll[0]:>12.4f} | "
+                    f"P11={x[10]:.4f}  P22={x[11]:.4f}  "
+                    f"sig0={x[1]:.4f}  sig1={x[6]:.4f}",
+                    flush=True,
+                )
 
         bounds = Bounds(
             lb=[-10.0, 1e-6, 0.0,  -3.0, 1e-6,
@@ -265,9 +283,19 @@ class LikelihoodEstimator:
                  0.9999, 0.9999],
         )
 
+        print("  [RSJM MLE]  Starting optimisation (progress every 5 iterations) ...",
+              flush=True)
+
         res = minimize(
             neg_ll, x0, method="L-BFGS-B", bounds=bounds,
-            options={"maxiter": 3000, "ftol": 1e-13, "gtol": 1e-8},
+            callback=_callback,
+            options={"maxiter": 500, "ftol": 1e-11, "gtol": 1e-7},
+        )
+
+        print(
+            f"  [RSJM MLE]  Done -- {_iter_count[0]} iterations | "
+            f"converged={res.success} | final LL={-res.fun:.4f}",
+            flush=True,
         )
         x  = res.x
         ll = -float(res.fun)
