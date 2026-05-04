@@ -120,7 +120,7 @@ RSJM-Derivatives-Pricing/
 
 ```bash
 # 1. Clone
-git clone https://github.com/<your-handle>/RSJM-Derivatives-Pricing.git
+git clone https://github.com/Manav-Bindlish/RSJM-Derivatives-Pricing.git
 cd RSJM-Derivatives-Pricing
 
 # 2. Create and activate a virtual environment (recommended)
